@@ -34,6 +34,31 @@ type Squidlet = (Int, Bool, Int)
 type GameState = ([[Squid]], Int)
 type Point = (Int, Int)
 
+printSquidGrid :: GameState -> IO ()
+printSquidGrid (grid, numFlashes) = do
+  printGraphicRow (grid !! 0)
+  printGraphicRow (grid !! 1)
+  printGraphicRow (grid !! 2)
+  printGraphicRow (grid !! 3)
+  printGraphicRow (grid !! 4)
+  printGraphicRow (grid !! 5)
+  printGraphicRow (grid !! 6)
+  printGraphicRow (grid !! 7)
+  printGraphicRow (grid !! 8)
+  printGraphicRow (grid !! 9)
+  putStrLn (show numFlashes)
+
+printGraphicRow :: [Squid] -> IO ()
+printGraphicRow s = do
+  putStrLn (generateGraphicRow s)
+
+generateGraphicRow :: [Squid] -> String
+generateGraphicRow [] = []
+generateGraphicRow ((x,_,_):ss) = (head $ show x):(generateGraphicRow ss)
+
+generateGraphicRows :: [[Squid]] -> [String]
+generateGraphicRows s = map generateGraphicRow s
+
 initialGameState :: String -> GameState
 initialGameState d = (gridOfSquids(map (\row -> lineOfSquidlets (map (\c -> read [c]) row) (length row)) (lines d)) (length (lines d)) , 0)
 
@@ -46,7 +71,7 @@ lineOfSquidlets [] _ = []
 lineOfSquidlets (n:ns) rowLength = (n, False, rowLength - (length ns) - 1):(lineOfSquidlets ns rowLength)
 
 leftToFlash :: GameState -> [Squid] 
-leftToFlash (grid, _) = filter (\(energy, flashedYet, _) -> (energy >= 9) && (flashedYet == False)) $ concat grid
+leftToFlash (grid, _) = filter (\(energy, flashedYet, _) -> (energy > 9) && (flashedYet == False)) $ concat grid
 
 getFromPoint :: GameState -> Point -> Squid
 getFromPoint (grid, _) (x, y) = grid !! y !! x
@@ -69,9 +94,13 @@ flashSquid (_, flashedYet, (x, y)) (grid, numFlashes) =
   if flashedYet then (grid, numFlashes) else setSquidFlashedGame (x, y) (flash9 (x, y) (grid, numFlashes + 1))
 
 flash9 :: Point -> GameState -> GameState
+flash9 (x, 0) (grid, numFlashes) = (map (flash3 x) (take 2 grid) ++ drop 2 grid, numFlashes)
+flash9 (x, 9) (grid, numFlashes) = (take 8 grid ++ map (flash3 x) (drop 8 grid), numFlashes)
 flash9 (x, y) (grid, numFlashes) = (take (y - 1) grid ++ map (flash3 x) (take 3 $ drop (y - 1) grid) ++ drop (y + 2) grid, numFlashes)
 
 flash3 :: Int -> [Squid] -> [Squid]
+flash3 0 row = map getFlashed (take 2 row) ++ drop 2 row
+flash3 9 row = take 8 row ++ map getFlashed (drop 8 row)
 flash3 x row = take (x - 1) row ++ map getFlashed (take 3 $ drop (x - 1) row) ++ drop (x + 2) row
 
 getFlashed :: Squid -> Squid
